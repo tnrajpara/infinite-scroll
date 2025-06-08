@@ -11,23 +11,61 @@ import { loadMoreReelsAction } from "../../actions/fetchReels";
 const VIDEO_RENDER_RADIUS = 1;
 const FETCH_THRESHOLD = 1;
 
-const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+      <div className="text-white text-lg">{message}</div>
+    </div>
+  </div>
+);
+
+const SwiperWrapper = ({ videos: initialVideos = [] }) => {
   const [videos, setVideos] = useState(initialVideos);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isInitialLoading, setIsInitialLoading] = useState(
+    !initialVideos.length
+  );
+  const [videoLoadingStates, setVideoLoadingStates] = useState({});
 
   const swiperRef = useRef(null);
   const currentIndexRef = useRef(0);
   const lastSlideTime = useRef(0);
   const isWheelScrolling = useRef(false);
 
-  const fetchMoreVideos = useCallback(async () => {
-    if (isPending || isLoadingMore) return;
+  useEffect(() => {
+    if (initialVideos.length > 0) {
+      setIsInitialLoading(false);
+    }
+  }, [initialVideos.length]);
 
-    setIsLoadingMore(true);
+  const handleVideoLoadStart = useCallback((videoId) => {
+    setVideoLoadingStates((prev) => ({
+      ...prev,
+      [videoId]: { loading: true, error: false },
+    }));
+  }, []);
+
+  const handleVideoLoadEnd = useCallback((videoId) => {
+    setVideoLoadingStates((prev) => ({
+      ...prev,
+      [videoId]: { loading: false, error: false },
+    }));
+  }, []);
+
+  const handleVideoError = useCallback((videoId) => {
+    setVideoLoadingStates((prev) => ({
+      ...prev,
+      [videoId]: { loading: false, error: true },
+    }));
+  }, []);
+
+  const fetchMoreVideos = useCallback(async () => {
+    if (isPending) return;
+
     setHasError(false);
     setErrorMessage("");
 
@@ -52,8 +90,6 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
               swiperRef.current.slideTo(currentIndex, 0);
             }
           }, 0);
-
-          console.log(`Loaded ${result.reels.length} more videos`);
         } else {
           console.warn("No more videos available:", result.message);
           setErrorMessage(result.message || "No more videos available");
@@ -63,21 +99,21 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
         setHasError(true);
         setErrorMessage("Failed to load more videos");
       } finally {
-        setIsLoadingMore(false);
+        setErrorMessage("");
       }
     });
-  }, [videos, isPending, isLoadingMore]);
+  }, [videos, isPending]);
 
   const checkAndLoadMore = useCallback(
     (currentIndex) => {
       const remainingVideos = videos.length - currentIndex - 1;
 
-      if (remainingVideos <= FETCH_THRESHOLD && !isPending && !isLoadingMore) {
+      if (remainingVideos <= FETCH_THRESHOLD && !isPending) {
         console.log(`${remainingVideos} videos remaining, fetching more...`);
         fetchMoreVideos();
       }
     },
-    [videos.length, isPending, isLoadingMore, fetchMoreVideos]
+    [videos.length, isPending, fetchMoreVideos]
   );
 
   const handleSlideChange = useCallback(
@@ -120,8 +156,13 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
   const handleRetry = () => {
     setHasError(false);
     setErrorMessage("");
-    fetchMoreVideos();
+    setIsInitialLoading(true);
+    fetchMoreVideos().finally(() => setIsInitialLoading(false));
   };
+
+  if (isInitialLoading) {
+    return <LoadingSpinner message="Loading videos..." />;
+  }
 
   if (!videos.length) {
     return (
@@ -132,9 +173,9 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
             <button
               onClick={handleRetry}
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-              disabled={isPending || isLoadingMore}
+              disabled={isPending}
             >
-              {isPending || isLoadingMore ? "Loading..." : "Retry"}
+              {isPending ? "Loading..." : "Retry"}
             </button>
           )}
         </div>
@@ -142,8 +183,15 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
     );
   }
 
+  const currentVideo = videos[activeIndex];
+  const isCurrentVideoLoading =
+    currentVideo && videoLoadingStates[currentVideo._id]?.loading;
+
   return (
     <div className="relative">
+      {/* Show loading spinner when fetching more videos or current video is loading */}
+      {(isPending || isCurrentVideoLoading) && <LoadingSpinner message="" />}
+
       <Swiper
         modules={[Mousewheel, Virtual]}
         spaceBetween={2}
@@ -210,26 +258,23 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
             className="h-[90vh] flex items-center justify-center"
             role="group"
             aria-label={`Video ${index + 1} of ${videos.length}${
-              isPending || isLoadingMore ? "+" : ""
+              isPending ? "+" : ""
             }`}
           >
             {shouldRenderVideo(index) && (
-              <VideoPlayer video={video} isActive={index === activeIndex} />
+              <VideoPlayer
+                video={video}
+                isActive={index === activeIndex}
+                onLoadStart={() => handleVideoLoadStart(video._id)}
+                onLoadEnd={() => handleVideoLoadEnd(video._id)}
+                onError={() => handleVideoError(video._id)}
+              />
             )}
           </SwiperSlide>
         ))}
       </Swiper>
 
-      {(isPending || isLoadingMore) && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-full flex items-center space-x-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Loading more videos...</span>
-          </div>
-        </div>
-      )}
-
-      {(hasError || errorMessage) && !isPending && !isLoadingMore && (
+      {(hasError || errorMessage) && !isPending && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           <div className="bg-red-500 bg-opacity-90 text-white px-4 py-2 rounded-full flex items-center space-x-2">
             <span>{errorMessage || "Failed to load videos"}</span>
@@ -242,14 +287,6 @@ const SwiperWrapper = ({ slug, videos: initialVideos = [] }) => {
           </div>
         </div>
       )}
-
-      {/* Video counter */}
-      <div className="absolute top-4 right-4 z-10">
-        <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-          {activeIndex + 1} / {videos.length}
-          {isPending || isLoadingMore ? "+" : ""}
-        </div>
-      </div>
     </div>
   );
 };

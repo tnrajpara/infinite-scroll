@@ -12,12 +12,9 @@ async function Page(props) {
   }
 
   try {
-    console.log(`Loading page for slug: ${slug}`);
-
     const result = await getInitialReelsAction(5, slug);
 
     if (result.notFound) {
-      console.error(`Video not found for slug: ${slug}`);
       return notFound();
     }
 
@@ -53,26 +50,13 @@ async function Page(props) {
             <p className="text-gray-600 mb-4">
               No videos found in the database. Please add some videos first.
             </p>
-            <div className="text-sm text-gray-500">
-              Total videos in database: {result.total || 0}
-            </div>
           </div>
         </div>
       );
     }
-
-    // Verify that the first video matches the slug
-    const firstVideo = videos[0];
-    if (firstVideo?.slug !== slug) {
-      console.error(
-        `First video slug mismatch. Expected: ${slug}, Got: ${firstVideo?.slug}`
-      );
-      return notFound();
-    }
-
     return (
       <div className="h-screen overflow-hidden">
-        <SwiperWrapper slug={slug} videos={videos} />
+        <SwiperWrapper videos={videos} />
       </div>
     );
   } catch (error) {

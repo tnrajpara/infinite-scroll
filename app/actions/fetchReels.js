@@ -15,7 +15,6 @@ function shuffleArray(array) {
 
 const getAllVideosCached = unstable_cache(
   async () => {
-    console.log("Fetching ALL videos from database...");
     try {
       await client.connect();
       const collection = client.db(DATABASE).collection(COLLECTION);
@@ -48,8 +47,6 @@ export async function getInitialReelsAction(limit = 5, prioritySlug = null) {
       return {
         success: false,
         reels: [],
-        message: "No videos available",
-        count: 0,
       };
     }
 
@@ -61,12 +58,8 @@ export async function getInitialReelsAction(limit = 5, prioritySlug = null) {
       );
 
       if (!priorityVideo) {
-        console.error(`Priority video not found for slug: ${prioritySlug}`);
         return {
           success: false,
-          reels: [],
-          message: `Video with slug "${prioritySlug}" not found`,
-          count: 0,
           notFound: true,
         };
       }
@@ -92,13 +85,6 @@ export async function getInitialReelsAction(limit = 5, prioritySlug = null) {
     return {
       success: true,
       reels: selectedVideos,
-      count: selectedVideos.length,
-      total: allVideos.length,
-      prioritySlug: prioritySlug,
-      foundPriority: prioritySlug
-        ? selectedVideos[0]?.slug === prioritySlug
-        : false,
-      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error in getInitialReelsAction:", error);
@@ -106,8 +92,6 @@ export async function getInitialReelsAction(limit = 5, prioritySlug = null) {
       success: false,
       reels: [],
       message: error.message,
-      error: true,
-      count: 0,
     };
   }
 }
@@ -146,11 +130,6 @@ export async function loadMoreReelsAction(excludeIds = [], limit = 5) {
     return {
       success: true,
       reels: selectedVideos,
-      count: selectedVideos.length,
-      total: allVideos.length,
-      available: availableVideos.length,
-      excluded: excludeIds.length,
-      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error in loadMoreReelsAction:", error);
@@ -158,8 +137,6 @@ export async function loadMoreReelsAction(excludeIds = [], limit = 5) {
       success: false,
       reels: [],
       message: error.message,
-      error: true,
-      count: 0,
     };
   }
 }

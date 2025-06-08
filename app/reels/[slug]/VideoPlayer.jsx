@@ -5,6 +5,8 @@ import { SiGoogledisplayandvideo360 } from "react-icons/si";
 import { PiShareFatFill } from "react-icons/pi";
 import { HiVolumeUp, HiVolumeOff } from "react-icons/hi";
 import { useRouter } from "next/navigation";
+import { SlOptionsVertical } from "react-icons/sl";
+import { MdReport } from "react-icons/md";
 
 function VideoPlayer({ video, isActive }) {
   const videoRef = useRef(null);
@@ -14,13 +16,12 @@ function VideoPlayer({ video, isActive }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(false);
-  const [containerWidth, setContainerWidth] = useState(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [optionClick, setOptionClicked] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const videoElement = videoRef.current;
-
     if (videoElement && isActive && !videoLoaded) {
       videoElement.src = video.url;
       setVideoLoaded(true);
@@ -58,30 +59,6 @@ function VideoPlayer({ video, isActive }) {
         videoElement.removeEventListener("pause", handlePause);
       };
     }
-  }, []);
-
-  useEffect(() => {
-    const calculateWidth = () => {
-      if (window.innerWidth <= 440) {
-        setContainerWidth("100%");
-        return;
-      }
-
-      const height = window.innerHeight - (window.innerWidth >= 768 ? 80 : 50);
-      const aspectRatio = 9 / 16;
-      let width = height * aspectRatio;
-
-      width = Math.min(width, window.innerWidth);
-
-      setContainerWidth(`${width}px`);
-    };
-
-    calculateWidth();
-    window.addEventListener("resize", calculateWidth);
-
-    return () => {
-      window.removeEventListener("resize", calculateWidth);
-    };
   }, []);
 
   useEffect(() => {
@@ -163,12 +140,15 @@ function VideoPlayer({ video, isActive }) {
     }
   };
 
+  const handleOptionClicked = (slug) => {
+    router.push(`/report?reel=${slug}`);
+  };
+
   return (
     <div className="flex justify-center w-full">
       <div
         ref={containerRef}
-        className="h-[calc(100vh-50px)] md:h-[calc(100vh-80px)] bg-black overflow-hidden relative shadow-lg"
-        style={{ width: containerWidth }}
+        className="w-full md:max-w-sm  h-[calc(100vh-50px)] bg-black overflow-hidden relative shadow-lg"
       >
         <video
           ref={videoRef}
@@ -178,7 +158,7 @@ function VideoPlayer({ video, isActive }) {
           playsInline
           preload="metadata"
           poster={video.thumbnail}
-          className="w-full h-full object-cover cursor-pointer"
+          className="w-full h-full object-cover cursor-pointer aspect-video"
           onClick={togglePlayPause}
         ></video>
 
@@ -233,6 +213,29 @@ function VideoPlayer({ video, isActive }) {
               </span>
             </div>
           )}
+
+          <div className="flex flex-col items-center relative">
+            <button
+              onClick={() => setOptionClicked((prev) => !prev)}
+              className="text-white bg-black/40 hover:bg-black/60 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-colors"
+              aria-label="Options menu"
+            >
+              <SlOptionsVertical size={20} />
+            </button>
+            {optionClick && (
+              <div className="absolute top-14 right-0 bg-black/70 backdrop-blur-sm rounded-lg p-2 min-w-[120px] shadow-lg">
+                <button
+                  onClick={() => {
+                    handleOptionClicked(video.slug);
+                  }}
+                  className="flex items-center gap-2 text-white cursor-pointer rounded-md px-3 py-2 w-full text-sm transition-colors"
+                >
+                  <MdReport size={16} />
+                  <span>Report</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 px-4 py-4 text-white bg-gradient-to-t from-black/80 to-transparent z-10">
