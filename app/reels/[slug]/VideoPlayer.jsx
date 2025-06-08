@@ -18,6 +18,8 @@ function VideoPlayer({ video, isActive }) {
   const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [optionClick, setOptionClicked] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -85,6 +87,29 @@ function VideoPlayer({ video, isActive }) {
     }
   }, [isActive, video.url, videoLoaded]);
 
+  useEffect(() => {
+    const calculateWidth = () => {
+      if (window.innerWidth <= 440) {
+        setContainerWidth("100%");
+        return;
+      }
+
+      const height = window.innerHeight - (window.innerWidth >= 768 ? 80 : 50);
+      const aspectRatio = 9 / 16;
+      let width = height * aspectRatio;
+
+      width = Math.min(width, window.innerWidth);
+
+      setContainerWidth(`${width}px`);
+    };
+
+    calculateWidth();
+    window.addEventListener("resize", calculateWidth);
+    return () => {
+      window.removeEventListener("resize", calculateWidth);
+    };
+  }, []);
+
   const progressPercentage = duration > 0 ? (progress / duration) * 100 : 0;
 
   const togglePlayPause = () => {
@@ -148,7 +173,8 @@ function VideoPlayer({ video, isActive }) {
     <div className="flex justify-center w-full">
       <div
         ref={containerRef}
-        className="w-full md:max-w-sm  h-[calc(100vh-50px)] bg-black overflow-hidden relative shadow-lg"
+        style={{ width: containerWidth }}
+        className="h-[calc(100vh-50px)] md:h-[calc(100vh-80px)] bg-black overflow-hidden relative shadow-lg"
       >
         <video
           ref={videoRef}
@@ -158,7 +184,7 @@ function VideoPlayer({ video, isActive }) {
           playsInline
           preload="metadata"
           poster={video.thumbnail}
-          className="w-full h-full object-cover cursor-pointer aspect-video"
+          className="w-full h-full object-cover cursor-pointer"
           onClick={togglePlayPause}
         ></video>
 

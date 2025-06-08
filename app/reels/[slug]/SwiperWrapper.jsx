@@ -189,7 +189,6 @@ const SwiperWrapper = ({ videos: initialVideos = [] }) => {
 
   return (
     <div className="relative">
-      {/* Show loading spinner when fetching more videos or current video is loading */}
       {(isPending || isCurrentVideoLoading) && <LoadingSpinner message="" />}
 
       <Swiper
@@ -250,6 +249,7 @@ const SwiperWrapper = ({ videos: initialVideos = [] }) => {
         touchRatio={1}
         followFinger={true}
         grabCursor={true}
+        autoplay={true}
       >
         {videos.map((video, index) => (
           <SwiperSlide
@@ -278,12 +278,6 @@ const SwiperWrapper = ({ videos: initialVideos = [] }) => {
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           <div className="bg-red-500 bg-opacity-90 text-white px-4 py-2 rounded-full flex items-center space-x-2">
             <span>{errorMessage || "Failed to load videos"}</span>
-            <button
-              onClick={handleRetry}
-              className="ml-2 px-2 py-1 bg-white bg-opacity-20 rounded text-sm hover:bg-opacity-30"
-            >
-              Retry
-            </button>
           </div>
         </div>
       )}

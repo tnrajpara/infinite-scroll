@@ -297,6 +297,7 @@ const VideoPlayer = React.memo(
               className="w-full h-full object-cover cursor-pointer"
               onClick={handlePlayPause}
               loop
+              autoPlay
               muted
               playsInline
               preload="metadata"
